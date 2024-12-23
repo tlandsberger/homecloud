@@ -1,0 +1,60 @@
+variant: fcos
+version: 1.6.0
+passwd:
+  users:
+    - name: core
+      uid: 1000
+      ssh_authorized_keys:
+        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDPg794UUit3QhLN1jOyOTWqDoQI4/RlBeOcAbkQ0CqYwnIieU2NSgzhtX7nsg2FgrszbJr0Ui6/UZY0pux+RH6ocEoGdY4mrzrsMRE5XxUdthLGPdfxVd7qsRXVnCvgj/B6Kt9GUz3Jfz0djBUd5mqnwLkUxHgVadFu/g6Rqvnd+se6O3BBRibhS5Ewf4pCnMecKUlvC9S4tF3Edz5nivdq1BdBpMe/sooT94UVau58NTVvuwS+3KK4/2ea5L84GBlKyBCwSSnJBEJNXF/eqM582fIJtAsX3fA+x2vA2H+/yzTJ+8M1B9uBRQoEATpT+2MWR5ya5LG+aoIbnkqPblcUcj8WT6eqZpwLr2e16qgc/JKttXjO4TnxQ/g0OGAM3RKEy8klrwcRZxj2lhYWaedpCkV+THfBHxFW7v0gBBK4d6h/GesYBXcOAAEzVaZYA7hMrSSyoJzfjfs4/MLdmFtnM4fIgMdrE47oSJez83LunypH1XuYn3421lYSep4Bn8= tlandsberger@outlook.de
+    - name: tlandsberger
+      uid: 1001
+      groups:
+        - docker
+      ssh_authorized_keys:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHakV8GMllrrV7WmIVTxlDaSdGBulLkBGWlv6gA/2V1R tlandsberger@outlook.de
+storage:
+  disks:
+    - device: /dev/disk/by-id/ata-VBOX_HARDDISK_VB707e5e48-f12d0ada
+      wipe_table: true
+      partitions:
+        - number: 1
+          label: raid.1.1
+          size_mib: 0
+          start_mib: 0
+    - device: /dev/disk/by-id/ata-VBOX_HARDDISK_VBd7e88625-a15624cf
+      wipe_table: true
+      partitions:
+        - number: 1
+          label: raid.1.2
+          size_mib: 0
+          start_mib: 0
+  raid:
+    - name: var
+      level: raid1
+      devices:
+        - /dev/disk/by-partlabel/raid.1.1
+        - /dev/disk/by-partlabel/raid.1.2
+  filesystems:
+    - path: /var
+      device: /dev/md/var
+      format: ext4
+      label: PUB
+      with_mount_unit: true
+  files:
+    - path: /etc/hostname
+      mode: 0644
+      contents:
+        inline: homecloud
+    - path: /etc/vconsole.conf
+      mode: 0644
+      contents:
+        inline: KEYMAP=de
+    - path: /etc/zincati/config.d/55-updates-strategy.toml
+      contents:
+        inline: |
+          [updates]
+          strategy = "periodic"
+          [[updates.periodic.window]]
+          days = [ "Sun" ]
+          start_time = "05:00"
+          length_minutes = 60
