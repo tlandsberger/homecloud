@@ -1,0 +1,203 @@
+- name: Homecloud host OS setup
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+
+  vars_prompt:
+    - name: docker_uuid
+      prompt: "UUID der Docker-Partition [Enter zum Überspringen]"
+      private: false
+      default: ""
+
+    - name: media_uuid
+      prompt: "UUID der Medien-Partition [Enter zum Überspringen]"
+      private: false
+      default: ""
+
+  handlers:
+    - name: apt-daily-upgrade.timer neu laden
+      ansible.builtin.systemd:
+        name: apt-daily-upgrade.timer
+        state: restarted
+        daemon_reload: true
+
+    - name: systemd-resolved neu starten
+      ansible.builtin.systemd:
+        name: systemd-resolved
+        state: restarted
+
+  tasks:
+
+    # --- System aktualisieren ---
+    - name: Paketlisten aktualisieren und System upgraden
+      ansible.builtin.apt:
+        upgrade: full
+        update_cache: true
+
+    # --- Automatische Sicherheitsupdates ---
+    - name: unattended-upgrades installieren
+      ansible.builtin.apt:
+        name: unattended-upgrades
+        state: present
+
+    - name: 20auto-upgrades konfigurieren
+      ansible.builtin.copy:
+        src: 20auto-upgrades
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        mode: "0644"
+
+    - name: 50unattended-upgrades konfigurieren
+      ansible.builtin.copy:
+        src: 50unattended-upgrades
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades
+        mode: "0644"
+
+    - name: Override-Verzeichnis anlegen
+      ansible.builtin.file:
+        path: /etc/systemd/system/apt-daily-upgrade.timer.d
+        state: directory
+        mode: "0755"
+
+    - name: apt-daily-upgrade Override konfigurieren
+      ansible.builtin.copy:
+        src: apt-daily-upgrade.override
+        dest: /etc/systemd/system/apt-daily-upgrade.timer.d/override.conf
+        mode: "0644"
+      notify: apt-daily-upgrade.timer neu laden
+
+    # --- systemd-resolved: DNS Stub Listener deaktivieren ---
+    - name: systemd-resolved DNS-Stub-Listener deaktivieren
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/resolved.conf
+        regexp: '^#?DNSStubListener='
+        line: 'DNSStubListener=no'
+        insertafter: '^\[Resolve\]'
+      notify: systemd-resolved neu starten
+
+    - name: resolv.conf auf vollständige Resolver-Konfiguration umstellen
+      ansible.builtin.file:
+        path: /etc/resolv.conf
+        src: /run/systemd/resolve/resolv.conf
+        state: link
+        force: true
+
+    # --- Docker installieren ---
+    - name: /etc/apt/keyrings Verzeichnis anlegen
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Docker GPG-Key hinzufügen
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+
+    - name: Docker APT-Repository hinzufügen
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/ubuntu
+          {{ ansible_distribution_release }} stable
+        state: present
+        filename: docker
+
+    - name: Docker-Pakete installieren
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: true
+
+    - name: Benutzer zur docker-Gruppe hinzufügen
+      ansible.builtin.user:
+        name: "{{ ansible_env.SUDO_USER | default(ansible_user_id) }}"
+        groups: docker
+        append: true
+
+    # --- Zweite Festplatte (optional) ---
+    - name: Prüfen ob /var/lib/docker bereits gemountet ist
+      ansible.builtin.command: mountpoint -q /var/lib/docker
+      register: docker_mounted
+      failed_when: false
+      changed_when: false
+      when: docker_uuid != ""
+
+    - name: Docker stoppen (für Festplatten-Mount)
+      ansible.builtin.systemd:
+        name: docker
+        state: stopped
+      when:
+        - docker_uuid != ""
+        - docker_mounted.rc != 0
+
+    - name: /var/lib/docker in fstab eintragen und mounten
+      ansible.posix.mount:
+        path: /var/lib/docker
+        src: "UUID={{ docker_uuid }}"
+        fstype: auto
+        opts: defaults,noatime
+        state: mounted
+      when: docker_uuid != ""
+
+    - name: Docker starten
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+      when:
+        - docker_uuid != ""
+        - docker_mounted.rc != 0
+
+    # --- Externe Mediafestplatte (optional) ---
+    - name: Dateisystem-Tools für portable Festplatten installieren
+      ansible.builtin.apt:
+        name:
+          - exfatprogs
+          - ntfs-3g
+        state: present
+      when: media_uuid != ""
+
+    - name: Mount-Punkt /mnt/media anlegen
+      ansible.builtin.file:
+        path: /mnt/media
+        state: directory
+        mode: "0755"
+      when: media_uuid != ""
+
+    - name: /mnt/media in fstab eintragen (Automount on-demand)
+      ansible.posix.mount:
+        path: /mnt/media
+        src: "UUID={{ media_uuid }}"
+        fstype: auto
+        opts: nofail,noauto,x-systemd.automount,x-systemd.device-timeout=10
+        state: present
+      when: media_uuid != ""
+
+    - name: systemd daemon-reload für Automount-Units
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: media_uuid != ""
+
+    # --- Docker proxy-Netzwerk ---
+    - name: Docker proxy-Netzwerk anlegen
+      ansible.builtin.command:
+        cmd: docker network create proxy
+      register: network_result
+      changed_when: network_result.rc == 0
+      failed_when: network_result.rc != 0 and 'already exists' not in network_result.stderr
+
+    # --- Portainer bootstrappen ---
+    - name: Portainer starten
+      ansible.builtin.command:
+        cmd: docker compose -f "{{ playbook_dir }}/../infrastructure/portainer/docker-compose.yml" up -d
+      register: portainer_result
+      changed_when: >
+        'Started' in portainer_result.stdout or
+        'Recreated' in portainer_result.stdout or
+        'Created' in portainer_result.stdout

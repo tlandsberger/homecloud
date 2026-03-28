@@ -1,0 +1,7 @@
+[Timer]
+# Leere Zeile setzt den Ubuntu-Default zurück
+OnCalendar=
+# Wartungsfenster: Sonntag 4:00 Uhr
+OnCalendar=Sun *-*-* 04:00:00
+RandomizedDelaySec=0
+Persistent=true
