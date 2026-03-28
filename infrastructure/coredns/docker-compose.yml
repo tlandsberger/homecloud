@@ -1,0 +1,31 @@
+services:
+  coredns:
+    image: coredns/coredns:1.14.2
+    container_name: coredns
+    restart: unless-stopped
+    command: -conf /etc/coredns/Corefile
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    configs:
+      - source: corefile
+        target: /etc/coredns/Corefile
+
+configs:
+  corefile:
+    content: |
+      tlandsberger.de {
+          template IN A {
+              answer "{{ .Name }} 60 IN A 192.168.11.11"
+          }
+          template IN AAAA {
+              rcode NOERROR
+          }
+          log
+      }
+
+      . {
+          forward . 192.168.11.1
+          cache
+          log
+      }
