@@ -1,0 +1,67 @@
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:2026.4.0
+    container_name: homeassistant
+    restart: unless-stopped
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+    volumes:
+      - homeassistant_config:/config
+    environment:
+      - TZ=Europe/Berlin
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homeassistant.rule=Host(`homeassistant.tlandsberger.de`)"
+      - "traefik.http.routers.homeassistant.entrypoints=websecure,cloudflare"
+      - "traefik.http.routers.homeassistant.tls.certresolver=letsencrypt"
+      - "traefik.http.services.homeassistant.loadbalancer.server.port=8123"
+      - "traefik.docker.network=proxy"
+
+  mosquitto:
+    image: eclipse-mosquitto:2.1.2
+    container_name: mosquitto
+    restart: unless-stopped
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        : > /tmp/passwd
+        mosquitto_passwd -b /tmp/passwd ${MQTT_USER} ${MQTT_PASSWORD}
+        exec mosquitto -c /mosquitto/config/mosquitto.conf
+    configs:
+      - source: mosquitto_config
+        target: /mosquitto/config/mosquitto.conf
+    volumes:
+      - mosquitto_data:/mosquitto/data
+    environment:
+      - MQTT_USER=${MQTT_USER}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.tcp.routers.mqtt.entrypoints=mqtt"
+      - "traefik.tcp.routers.mqtt.rule=HostSNI(`*`)"
+      - "traefik.tcp.services.mqtt.loadbalancer.server.port=1883"
+      - "traefik.docker.network=proxy"
+
+configs:
+  mosquitto_config:
+    content: |
+      listener 1883 0.0.0.0
+      allow_anonymous false
+      password_file /tmp/passwd
+      persistence true
+      persistence_location /mosquitto/data/
+      log_dest stdout
+
+volumes:
+  homeassistant_config:
+  mosquitto_data:
+
+networks:
+  proxy:
+    external: true
+    name: proxy
