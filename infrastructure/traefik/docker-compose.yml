@@ -1,0 +1,77 @@
+services:
+  traefik:
+    image: traefik:v3.6.12
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8443:8443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_certs:/certs
+    configs:
+      - source: traefik_static
+        target: /traefik.yml
+    environment:
+      - ACME_EMAIL=${ACME_EMAIL}
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.tlandsberger.de`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure,cloudflare"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=traefik-auth"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+
+configs:
+  traefik_static:
+    content: |
+      api:
+        dashboard: true
+
+      entryPoints:
+        cloudflare:
+          address: ":8443"
+        websecure:
+          address: ":443"
+        web:
+          address: ":80"
+          http:
+            redirections:
+              entryPoint:
+                to: websecure
+                scheme: https
+
+      providers:
+        docker:
+          exposedByDefault: false
+          network: proxy
+
+      certificatesResolvers:
+        letsencrypt:
+          acme:
+            email: "${ACME_EMAIL}"
+            storage: /certs/acme.json
+            dnsChallenge:
+              provider: cloudflare
+              delayBeforeCheck: 30
+              resolvers:
+                - "1.1.1.1:53"
+
+      log:
+        level: INFO
+
+      accessLog: {}
+
+
+volumes:
+  traefik_certs:
+
+networks:
+  proxy:
+    external: true
+    name: proxy
