@@ -18,6 +18,7 @@ services:
       - "traefik.http.routers.homeassistant.tls.certresolver=letsencrypt"
       - "traefik.http.services.homeassistant.loadbalancer.server.port=8123"
       - "traefik.docker.network=proxy"
+      - "logging=promtail"
 
   mosquitto:
     image: eclipse-mosquitto:2.1.2
@@ -46,6 +47,7 @@ services:
       - "traefik.tcp.routers.mqtt.rule=HostSNI(`*`)"
       - "traefik.tcp.services.mqtt.loadbalancer.server.port=1883"
       - "traefik.docker.network=proxy"
+      - "logging=promtail"
 
 configs:
   mosquitto_config:

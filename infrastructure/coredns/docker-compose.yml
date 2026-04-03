@@ -10,6 +10,12 @@ services:
     configs:
       - source: corefile
         target: /etc/coredns/Corefile
+    networks:
+      - proxy
+    labels:
+      - "logging=promtail"
+      - "prometheus.scrape=true"
+      - "prometheus.port=coredns:9153"
 
 configs:
   corefile:
@@ -22,10 +28,17 @@ configs:
               rcode NOERROR
           }
           log
+          prometheus :9153
       }
 
       . {
           forward . 192.168.11.1
           cache
           log
+          prometheus :9153
       }
+
+networks:
+  proxy:
+    external: true
+    name: proxy

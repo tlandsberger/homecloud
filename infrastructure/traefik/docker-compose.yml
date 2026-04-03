@@ -27,6 +27,9 @@ services:
       - "traefik.http.routers.traefik.service=api@internal"
       - "traefik.http.routers.traefik.middlewares=traefik-auth"
       - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+      - "logging=promtail"
+      - "prometheus.scrape=true"
+      - "prometheus.port=traefik:8082"
 
 configs:
   traefik_static:
@@ -48,6 +51,8 @@ configs:
                 scheme: https
         mqtt:
           address: ":1883"
+        metrics:
+          address: ":8082"
 
       providers:
         docker:
@@ -70,6 +75,11 @@ configs:
 
       accessLog: {}
 
+      metrics:
+        prometheus:
+          entryPoint: metrics
+          addEntryPointsLabels: true
+          addServicesLabels: true
 
 volumes:
   traefik_certs:
