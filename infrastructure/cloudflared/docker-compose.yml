@@ -8,6 +8,8 @@ services:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
       - proxy
+    labels:
+      - "logging=promtail"
 
 networks:
   proxy:
