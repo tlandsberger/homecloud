@@ -1,0 +1,254 @@
+services:
+  loki:
+    image: grafana/loki:3.7.1
+    container_name: loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki.yml
+    volumes:
+      - loki_data:/loki
+    configs:
+      - source: loki_config
+        target: /etc/loki/loki.yml
+    networks:
+      - monitoring
+
+  alloy:
+    image: grafana/alloy:v1.15.0
+    container_name: alloy
+    restart: unless-stopped
+    command: run --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    volumes:
+      - alloy_data:/var/lib/alloy/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log/journal:/var/log/journal:ro
+      - /run/log/journal:/run/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
+    configs:
+      - source: alloy_config
+        target: /etc/alloy/config.alloy
+    networks:
+      - monitoring
+    depends_on:
+      - loki
+
+  prometheus:
+    image: prom/prometheus:v3.11.0
+    container_name: prometheus
+    user: root
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+    volumes:
+      - prometheus_data:/prometheus
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+    networks:
+      - monitoring
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.tlandsberger.de`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure,cloudflare"
+      - "traefik.http.routers.prometheus.tls.certresolver=letsencrypt"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+      - "traefik.docker.network=proxy"
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.56.2
+    container_name: cadvisor
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - monitoring
+
+  node_exporter:
+    image: prom/node-exporter:v1.10.2
+    container_name: node_exporter
+    restart: unless-stopped
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+      - --no-collector.thermal_zone
+    networks:
+      - monitoring
+    labels:
+      - "logging=promtail"
+
+  grafana:
+    image: grafana/grafana:11.6.14
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_SERVER_ROOT_URL=https://grafana.tlandsberger.de
+    volumes:
+      - grafana_data:/var/lib/grafana
+    configs:
+      - source: grafana_datasources
+        target: /etc/grafana/provisioning/datasources/datasources.yml
+    networks:
+      - monitoring
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.tlandsberger.de`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure,cloudflare"
+      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.docker.network=proxy"
+    depends_on:
+      - loki
+      - prometheus
+
+volumes:
+  loki_data:
+  prometheus_data:
+  grafana_data:
+  alloy_data:
+
+networks:
+  monitoring:
+    driver: bridge
+  proxy:
+    external: true
+    name: proxy
+
+configs:
+  loki_config:
+    content: |
+      auth_enabled: false
+      server:
+        http_listen_port: 3100
+      ingester:
+        wal:
+          dir: /loki/wal
+        lifecycler:
+          ring:
+            kvstore:
+              store: inmemory
+            replication_factor: 1
+      schema_config:
+        configs:
+          - from: 2024-01-01
+            store: tsdb
+            object_store: filesystem
+            schema: v13
+            index:
+              prefix: index_
+              period: 24h
+      storage_config:
+        tsdb_shipper:
+          active_index_directory: /loki/index
+          cache_location: /loki/index_cache
+        filesystem:
+          directory: /loki/chunks
+      limits_config:
+        retention_period: 30d
+      compactor:
+        working_directory: /loki/compactor
+        retention_enabled: true
+        delete_request_store: filesystem
+
+  alloy_config:
+    content: |
+      loki.write "default" {
+        endpoint {
+          url = "http://loki:3100/loki/api/v1/push"
+        }
+      }
+
+      discovery.docker "containers" {
+        host             = "unix:///var/run/docker.sock"
+        refresh_interval = "5s"
+        filter {
+          name   = "label"
+          values = ["logging=promtail"]
+        }
+      }
+
+      discovery.relabel "containers" {
+        targets = discovery.docker.containers.targets
+        rule {
+          source_labels = ["__meta_docker_container_name"]
+          regex         = "/(.*)"
+          target_label  = "container"
+        }
+        rule {
+          source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+          target_label  = "service"
+        }
+        rule {
+          source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+          target_label  = "stack"
+        }
+      }
+
+      loki.source.docker "containers" {
+        host             = "unix:///var/run/docker.sock"
+        targets          = discovery.relabel.containers.output
+        forward_to       = [loki.write.default.receiver]
+        refresh_interval = "5s"
+      }
+
+      loki.source.journal "system" {
+        forward_to = [loki.write.default.receiver]
+        max_age    = "12h"
+        labels     = {
+          job = "systemd-journal",
+        }
+      }
+
+  prometheus_config:
+    content: |
+      global:
+        scrape_interval: 30s
+      scrape_configs:
+        - job_name: cadvisor
+          static_configs:
+            - targets: ["cadvisor:8080"]
+        - job_name: docker_services
+          docker_sd_configs:
+            - host: unix:///var/run/docker.sock
+              refresh_interval: 5s
+              filters:
+                - name: label
+                  values: ["prometheus.scrape=true"]
+          relabel_configs:
+            - source_labels: [__meta_docker_container_label_prometheus_port]
+              target_label: __address__
+            - source_labels: [__meta_docker_container_label_prometheus_path]
+              target_label: __metrics_path__
+            - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+              target_label: service
+            - source_labels: [__meta_docker_container_label_com_docker_compose_project]
+              target_label: stack
+        - job_name: node
+          static_configs:
+            - targets: ["node_exporter:9100"]
+
+  grafana_datasources:
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus:9090
+          isDefault: true
+        - name: Loki
+          type: loki
+          url: http://loki:3100
+          isDefault: false
