@@ -96,7 +96,7 @@ services:
       - "logging=promtail"
 
   grafana:
-    image: grafana/grafana:11.6.14
+    image: grafana/grafana:12.4.2
     container_name: grafana
     restart: unless-stopped
     environment:
