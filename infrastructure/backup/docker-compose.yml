@@ -1,0 +1,18 @@
+services:
+  restic:
+    build: .
+    container_name: restic-backup
+    hostname: homecloud
+    restart: unless-stopped
+    user: root
+    environment:
+      - BACKUP_CRON=30 2 * * *
+      - RESTIC_PASSWORD=${RESTIC_PASSWORD}
+      - RESTIC_REMOTE_REPOSITORY=rclone:homecloud-onedrive:backup/homecloud
+      - RCLONE_CONFIG_BASE64=${RCLONE_CONFIG_BASE64}
+      - TZ=Europe/Berlin
+    volumes:
+      - /var/lib/docker/volumes:/data/volumes:ro
+      - /mnt/media/backup:/data/backup
+    labels:
+      - "logging=promtail"
