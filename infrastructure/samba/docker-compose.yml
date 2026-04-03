@@ -1,0 +1,22 @@
+services:
+  samba:
+    image: ghcr.io/servercontainers/samba:smbd-wsdd2-a3.23.3-s4.22.8-r0
+    container_name: samba
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - TZ=Europe/Berlin
+      - AVAHI_DISABLE=1
+      - SAMBA_CONF_SERVER_STRING=Homecloud
+      - SAMBA_CONF_KERBEROS_METHOD=secrets only
+      - ACCOUNT_smb=${SMB_PASSWORD}
+      - UID_smb=1000
+      - SAMBA_VOLUME_CONFIG_media=[media]; path=/mnt/media; valid users = smb; read only = no; browseable = yes
+      - SAMBA_VOLUME_CONFIG_docker_volumes=[docker-volumes]; path=/var/lib/docker/volumes; valid users = smb; read only = no; browseable = yes
+    volumes:
+      - /mnt/media:/mnt/media
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    labels:
+      - "logging=promtail"
