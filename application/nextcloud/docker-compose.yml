@@ -1,0 +1,62 @@
+services:
+  nextcloud_db:
+    image: postgres:18.3-alpine
+    container_name: nextcloud_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+    volumes:
+      - nextcloud_db_data:/var/lib/postgresql/data
+    networks:
+      - nextcloud
+
+  nextcloud_redis:
+    image: redis:8.6.2-alpine
+    container_name: nextcloud_redis
+    restart: unless-stopped
+    networks:
+      - nextcloud
+
+  nextcloud:
+    image: nextcloud:33.0.2-apache
+    container_name: nextcloud
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=nextcloud_db
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.tlandsberger.de
+      - REDIS_HOST=nextcloud_redis
+      - TRUSTED_PROXIES=172.18.0.0/16
+      - OVERWRITEPROTOCOL=https
+      - OVERWRITEHOST=nextcloud.tlandsberger.de
+      - OVERWRITECLIURL=https://nextcloud.tlandsberger.de
+    volumes:
+      - nextcloud_data:/var/www/html
+    depends_on:
+      - nextcloud_db
+      - nextcloud_redis
+    networks:
+      - nextcloud
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.tlandsberger.de`)"
+      - "traefik.http.routers.nextcloud.entrypoints=websecure,cloudflare"
+      - "traefik.http.routers.nextcloud.tls.certresolver=letsencrypt"
+      - "traefik.http.services.nextcloud.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy"
+
+volumes:
+  nextcloud_data:
+  nextcloud_db_data:
+
+networks:
+  nextcloud:
+    driver: bridge
+  proxy:
+    external: true
+    name: proxy
