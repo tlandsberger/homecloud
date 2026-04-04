@@ -13,7 +13,6 @@ services:
     networks:
       - proxy
     labels:
-      - "logging=promtail"
       - "prometheus.scrape=true"
       - "prometheus.port=coredns:9153"
 

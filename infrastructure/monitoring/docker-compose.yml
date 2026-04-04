@@ -11,8 +11,6 @@ services:
         target: /etc/loki/loki.yml
     networks:
       - monitoring
-    labels:
-      - "logging=promtail"
 
   alloy:
     image: grafana/alloy:v1.15.0
@@ -30,8 +28,6 @@ services:
         target: /etc/alloy/config.alloy
     networks:
       - monitoring
-    labels:
-      - "logging=promtail"
     depends_on:
       - loki
 
@@ -59,7 +55,6 @@ services:
       - "traefik.http.routers.prometheus.tls.certresolver=letsencrypt"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
       - "traefik.docker.network=proxy"
-      - "logging=promtail"
 
   cadvisor:
     image: ghcr.io/google/cadvisor:0.56.2
@@ -72,8 +67,6 @@ services:
       - /var/lib/docker:/var/lib/docker:ro
     networks:
       - monitoring
-    labels:
-      - "logging=promtail"
 
   node_exporter:
     image: prom/node-exporter:v1.10.2
@@ -92,8 +85,6 @@ services:
       - --no-collector.thermal_zone
     networks:
       - monitoring
-    labels:
-      - "logging=promtail"
 
   grafana:
     image: grafana/grafana:11.6.14
@@ -117,7 +108,6 @@ services:
       - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
       - "traefik.docker.network=proxy"
-      - "logging=promtail"
     depends_on:
       - loki
       - prometheus
@@ -182,10 +172,6 @@ configs:
       discovery.docker "containers" {
         host             = "unix:///var/run/docker.sock"
         refresh_interval = "5s"
-        filter {
-          name   = "label"
-          values = ["logging=promtail"]
-        }
       }
 
       discovery.relabel "containers" {
@@ -239,6 +225,7 @@ configs:
             - source_labels: [__meta_docker_container_label_prometheus_port]
               target_label: __address__
             - source_labels: [__meta_docker_container_label_prometheus_path]
+              regex: ".+"
               target_label: __metrics_path__
             - source_labels: [__meta_docker_container_label_com_docker_compose_service]
               target_label: service

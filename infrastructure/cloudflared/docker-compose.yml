@@ -3,13 +3,14 @@ services:
     image: cloudflare/cloudflared:2026.3.0
     container_name: cloudflared
     restart: unless-stopped
-    command: tunnel run
+    command: tunnel --metrics 0.0.0.0:60123 run
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
       - proxy
     labels:
-      - "logging=promtail"
+      - "prometheus.scrape=true"
+      - "prometheus.port=cloudflared:60123"
 
 networks:
   proxy:

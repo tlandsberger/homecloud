@@ -27,7 +27,6 @@ services:
       - "traefik.http.routers.traefik.service=api@internal"
       - "traefik.http.routers.traefik.middlewares=traefik-auth"
       - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
-      - "logging=promtail"
       - "prometheus.scrape=true"
       - "prometheus.port=traefik:8082"
 
