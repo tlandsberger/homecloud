@@ -69,7 +69,7 @@ services:
       - monitoring
 
   node_exporter:
-    image: prom/node-exporter:v1.11.0
+    image: prom/node-exporter:v1.11.1
     container_name: node_exporter
     restart: unless-stopped
     pid: host
