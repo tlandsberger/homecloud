@@ -3,7 +3,7 @@
   "extends": ["config:recommended"],
   "dependencyDashboard": true,
   "timezone": "Europe/Berlin",
-  "automergeSchedule": "* 3-5 * * *",
+  "automergeSchedule": "* 3-4 * * *",
   "prHourlyLimit": 0,
   "packageRules": [
     {
