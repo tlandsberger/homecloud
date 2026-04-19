@@ -27,6 +27,12 @@
         name: systemd-resolved
         state: restarted
 
+    - name: portainer-update.timer neu laden
+      ansible.builtin.systemd:
+        name: portainer-update.timer
+        state: restarted
+        daemon_reload: true
+
   tasks:
 
     # --- System aktualisieren ---
@@ -201,3 +207,44 @@
         'Started' in portainer_result.stdout or
         'Recreated' in portainer_result.stdout or
         'Created' in portainer_result.stdout
+
+    # --- Portainer auto-update Timer ---
+    - name: portainer-update.service deployen
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/portainer-update.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Portainer stack aktualisieren
+          After=docker.service network-online.target
+          Requires=docker.service
+
+          [Service]
+          Type=oneshot
+          ExecStartPre=/usr/bin/git -C {{ playbook_dir }}/.. pull --ff-only
+          ExecStart=/usr/bin/docker compose -f {{ playbook_dir }}/../infrastructure/portainer/docker-compose.yml up -d --pull always
+      notify: portainer-update.timer neu laden
+
+    - name: portainer-update.timer deployen
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/portainer-update.timer
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Portainer stack regelmäßig aktualisieren
+
+          [Timer]
+          OnBootSec=2min
+          OnUnitActiveSec=5min
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+      notify: portainer-update.timer neu laden
+
+    - name: portainer-update.timer aktivieren und starten
+      ansible.builtin.systemd:
+        name: portainer-update.timer
+        state: started
+        enabled: true
+        daemon_reload: true
