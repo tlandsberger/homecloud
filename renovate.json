@@ -3,7 +3,7 @@
   "extends": ["config:recommended"],
   "dependencyDashboard": true,
   "timezone": "Europe/Berlin",
-  "schedule": "0 3-5 * * *",
+  "schedule": "* 3-5 * * *",
   "prHourlyLimit": 0,
   "packageRules": [
     {
