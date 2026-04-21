@@ -26,7 +26,7 @@ After a `git push`, Portainer auto-redeploys changed stacks within 60 seconds.
 
 ### Access Paths
 
-**External (Internet):** Browser → Cloudflare Edge (Zero Trust, e-mail OTP) → cloudflared tunnel (outbound) → Traefik:443 → Service
+**External (Internet):** Browser → Cloudflare Edge (Zero Trust, e-mail OTP) → cloudflared tunnel (outbound) → Traefik:8443 → Service
 
 **Internal (LAN):** Browser → CoreDNS (*.tlandsberger.de → NUC LAN-IP) → Traefik:443 → Service
 
@@ -50,8 +50,8 @@ All per-stack secrets (API tokens, passwords) are entered as environment variabl
 
 Stack deploy order (only relevant for fresh setup):
 1. CoreDNS (then update FritzBox DHCP DNS to NUC IP)
-2. Traefik
-3. cloudflared
+2. cloudflared (creates the `cloudflare` Docker network)
+3. Traefik (needs the `cloudflare` network from step 2)
 4. All other services
 
 Each stack is added in Portainer via **Stacks → Add stack → Repository** with polling auto-update enabled (60s). For changes: edit the compose file, commit, push – Portainer handles the rest.
@@ -75,6 +75,8 @@ Approval happens via the **"Renovate Dependency Dashboard"** issue in the GitHub
 - Docker installation via official APT repo (packages: docker-ce, docker-ce-cli, containerd.io, buildx, compose)
 - Docker `proxy` network creation
 - Optional second disk: interactive prompt, ext4, direkt unter `/var/lib/docker` gemountet (transparent für Docker und alle Tools)
+- Optional media disk: Automount unter `/mnt/media` (exFAT/NTFS/ext4)
+- Portainer auto-update timer: systemd-Timer prüft alle 5 Min. auf Updates (`git pull` + `docker compose up`)
 
 The `Docker` APT origin is included in `host/50unattended-upgrades` so Docker updates automatically.
 

@@ -178,7 +178,7 @@ Alle Schritte in chronologischer Reihenfolge – vollständig ausführbar bei Sy
    | `*` | `tlandsberger.de` | `https://traefik:8443` |
 
    > **TLS-Einstellung:** Unter **Additional application settings → TLS → No TLS Verify aktivieren.**
-   > cloudflared verbindet sich intern über `https://traefik:443` – der Docker-Hostname `traefik`
+   > cloudflared verbindet sich intern über `https://traefik:8443` – der Docker-Hostname `traefik`
    > stimmt nicht mit dem öffentlichen Zertifikat überein. No TLS Verify verhindert diesen Fehler.
    > Cloudflare-Modus: **Full (Strict)** (gilt für Browser → Cloudflare Edge, unverändert)
 
@@ -231,7 +231,7 @@ Die feste LAN-IP des NUC lautet `192.168.11.11`.
 > **Heimnetz → Netzwerk → Heimnetz-Übersicht** → NUC-Gerät anklicken
 > → „Diesem Gerät immer dieselbe IPv4-Adresse zuweisen" aktivieren
 
-#### 2.4 Setup-Playbook ausführen
+#### 2.3 Setup-Playbook ausführen
 
 ```bash
 # Ansible und Collections installieren (einmalig)
@@ -255,7 +255,9 @@ ansible-playbook host/playbook.yml
 
 `host/playbook.yml` übernimmt: System-Update, automatische Sicherheitsupdates
 (Wartungsfenster **Sonntag 4:00 Uhr**, Reboot 4:30 Uhr), Docker-Installation,
-`proxy`-Netzwerk und optionale zweite Festplatte für Docker-Volumes.
+`proxy`-Netzwerk, optionale zweite Festplatte für Docker-Volumes,
+optionale Media-Disk unter `/mnt/media` (Automount) und einen systemd-Timer
+für automatische Portainer-Updates (alle 5 Minuten `git pull` + `docker compose up`).
 
 Das Playbook ist idempotent – es kann jederzeit erneut ausgeführt werden,
 um Konfigurationsänderungen sicher einzuspielen.
@@ -278,6 +280,13 @@ landen auf der zweiten Disk – keine zusätzliche Docker-Konfiguration nötig.
 
 Bei Eingabe von Enter wird dieser Schritt übersprungen – alle Docker-Daten liegen
 auf der Haupt-Disk unter `/var/lib/docker/`.
+
+**Media-Disk (optional)**
+
+Das Playbook fragt zusätzlich nach der UUID einer Media-Partition.
+Diese wird unter `/mnt/media` mit systemd-Automount eingebunden (On-Demand-Mount
+beim ersten Zugriff, 10s Timeout). Unterstützt ext4, exFAT und NTFS.
+Wird von Samba, Jellyfin und dem Backup-Stack genutzt.
 
 ---
 
@@ -445,10 +454,13 @@ Für jeden Stack in Portainer: **Stacks → Add stack → Repository**
 | 2           | `traefik`       | `infrastructure/traefik/docker-compose.yml`      |
 | 3           | `cloudflared`   | `infrastructure/cloudflared/docker-compose.yml`  |
 | 4           | `monitoring`    | `infrastructure/monitoring/docker-compose.yml`   |
-| 5           | `samba`         | `infrastructure/samba/docker-compose.yml`        |
-| 6           | `backup`        | `infrastructure/backup/docker-compose.yml`       |
-| 7           | `homeassistant` | `application/homeassistant/docker-compose.yml`   |
-| 8           | `plex`          | `application/plex/docker-compose.yml`            |
+| 5           | `keycloak`      | `infrastructure/keycloak/docker-compose.yml`     |
+| 6           | `samba`         | `infrastructure/samba/docker-compose.yml`        |
+| 7           | `backup`        | `infrastructure/backup/docker-compose.yml`       |
+| 8           | `homeassistant` | `application/homeassistant/docker-compose.yml`   |
+| 9           | `jellyfin`      | `application/jellyfin/docker-compose.yml`        |
+| 10          | `nextcloud`     | `application/nextcloud/docker-compose.yml`       |
+| 11          | `windows`       | `application/windows/docker-compose.yml`         |
 
 Nach dem Deploy von CoreDNS: **FritzBox DHCP-DNS auf NUC-IP umstellen** (Schritt 3.2).
 
@@ -473,6 +485,15 @@ Nach dem Deploy von CoreDNS: **FritzBox DHCP-DNS auf NUC-IP umstellen** (Schritt
 
 Keine Secrets erforderlich – alle Konfigurationen sind im Compose-File enthalten.
 
+#### infrastructure/keycloak
+
+| Variable               | Wert                                                                                                      |
+|------------------------|-----------------------------------------------------------------------------------------------------------|
+| `KEYCLOAK_DB_PASSWORD` | PostgreSQL-Passwort für Keycloak. Generieren: `openssl rand -base64 32`                                   |
+
+> Beim ersten Start wird ein temporärer Admin-Account (`temp-admin` / `temp-admin`) erstellt.
+> Nach dem ersten Login **sofort ändern**.
+
 #### infrastructure/samba
 
 | Variable       | Wert                                              |
@@ -486,8 +507,18 @@ Keine Secrets erforderlich – alle Konfigurationen sind im Compose-File enthalt
 | `MQTT_USER`      | Benutzername für den MQTT-Broker           |
 | `MQTT_PASSWORD`  | Passwort für den MQTT-Broker               |
 
-#### application/plex
+#### application/jellyfin
 
-| Variable     | Wert                                                                                                    |
-|--------------|---------------------------------------------------------------------------------------------------------|
-| `PLEX_CLAIM` | Claim-Token von [plex.tv/claim](https://www.plex.tv/claim) – nur beim ersten Start nötig, danach leer lassen |
+Keine Secrets erforderlich. Benötigt GPU-Zugriff (`/dev/dri`) für Hardware-Transcoding
+und die Media-Disk unter `/mnt/media`.
+
+#### application/nextcloud
+
+| Variable                | Wert                                                                    |
+|-------------------------|-------------------------------------------------------------------------|
+| `NEXTCLOUD_DB_PASSWORD` | PostgreSQL-Passwort für Nextcloud. Generieren: `openssl rand -base64 32` |
+
+#### application/windows
+
+Keine Secrets erforderlich. Benötigt KVM-Unterstützung auf dem Host (`/dev/kvm`).
+Erreichbar unter `win.tlandsberger.de` (Web-UI) und per RDP auf Port 3389 (direktes Host-Port-Binding).
