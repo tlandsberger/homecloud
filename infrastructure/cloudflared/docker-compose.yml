@@ -7,12 +7,11 @@ services:
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
-      - proxy
+      - cloudflare
     labels:
       - "prometheus.scrape=true"
       - "prometheus.port=cloudflared:60123"
 
 networks:
-  proxy:
-    external: true
-    name: proxy
+  cloudflare:
+    name: cloudflare
