@@ -126,6 +126,7 @@
         name: "{{ ansible_env.SUDO_USER | default(ansible_user_id) }}"
         groups: docker
         append: true
+      register: docker_group
 
     # --- Zweite Festplatte (optional) ---
     - name: Prüfen ob /var/lib/docker bereits gemountet ist
@@ -248,3 +249,22 @@
         state: started
         enabled: true
         daemon_reload: true
+
+    # --- Reboot (nur beim ersten Durchlauf, wenn docker-Gruppe neu hinzugefügt) ---
+    - name: Ausstehende Handler abarbeiten
+      ansible.builtin.meta: flush_handlers
+      when: docker_group.changed
+
+    - name: Reboot-Bestätigung
+      ansible.builtin.pause:
+        prompt: >-
+          docker-Gruppe hinzugefügt – Reboot erforderlich.
+          Portainer ist nach dem Reboot unter http://192.168.11.11:9000 erreichbar.
+          Enter zum Neustarten, Ctrl+C → A zum Abbrechen
+      when: docker_group.changed
+
+    - name: Reboot für docker-Gruppe
+      ansible.builtin.shell: shutdown -r +0
+      async: 1
+      poll: 0
+      when: docker_group.changed

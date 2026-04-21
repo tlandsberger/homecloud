@@ -231,25 +231,15 @@ Die feste LAN-IP des NUC lautet `192.168.11.11`.
 > **Heimnetz → Netzwerk → Heimnetz-Übersicht** → NUC-Gerät anklicken
 > → „Diesem Gerät immer dieselbe IPv4-Adresse zuweisen" aktivieren
 
-#### 2.3 Setup-Playbook ausführen
+#### 2.3 Setup-Skript ausführen
 
 ```bash
-# Ansible und Collections installieren (einmalig)
-sudo apt install -y ansible
-ansible-galaxy collection install -r host/requirements.yml
-
-# Repo klonen
-git clone https://github.com/tlandsberger/homecloud.git
-cd homecloud
-
-# UUID der weiteren Disks ermitteln
-lsblk -f
-
-# Playbook ausführen (fragt interaktiv nach der Disk)
-ansible-playbook host/playbook.yml
+bash <(curl -fsSL https://raw.githubusercontent.com/tlandsberger/homecloud/main/host/init.sh)
 ```
 
-> Neu einloggen nach dem Playbook, damit die `docker`-Gruppe wirksam wird.
+> Das Skript zeigt alle verfügbaren Partitionen und lässt interaktiv die Docker- und Media-Partition auswählen.
+> Nach dem Playbook wird automatisch ein Reboot ausgeführt, damit die `docker`-Gruppe wirksam wird.
+> Der Reboot erfolgt nur beim ersten Durchlauf – bei erneutem Ausführen (idempotent) wird er übersprungen.
 
 > Portainer wird vom Playbook automatisch gestartet und ist danach unter `http://192.168.11.11:9000` erreichbar. Beim ersten Aufruf: Admin-Account anlegen.
 
