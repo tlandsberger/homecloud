@@ -57,6 +57,6 @@ media_uuid=$(pick_partition "Media-Partition (wird unter /mnt/media gemountet):"
 # --- Playbook ausführen ---
 echo ""
 echo "Playbook starten..."
-ansible-playbook host/playbook.yml \
+ansible-playbook host/playbook.yml -K \
     -e "docker_uuid=${docker_uuid}" \
     -e "media_uuid=${media_uuid}"
