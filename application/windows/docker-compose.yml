@@ -16,6 +16,8 @@ services:
       - RAM_SIZE=8G
       - CPU_CORES=4
       - DISK_SIZE=128G
+    ports:
+      - "3389:3389"
     volumes:
       - windows_data:/storage
     networks:
@@ -27,9 +29,6 @@ services:
       - "traefik.http.routers.windows-web.entrypoints=websecure,cloudflare"
       - "traefik.http.routers.windows-web.tls.certresolver=letsencrypt"
       - "traefik.http.services.windows.loadbalancer.server.port=8006"
-      - "traefik.tcp.routers.windows-rdp.rule=HostSNI(`*`)"
-      - "traefik.tcp.routers.windows-rdp.entrypoints=rdp"
-      - "traefik.tcp.services.windows-rdp.loadbalancer.server.port=3389"
 
 volumes:
   windows_data:

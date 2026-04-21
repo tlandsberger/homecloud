@@ -7,8 +7,6 @@ services:
       - "80:80"
       - "443:443"
       - "8443:8443"
-      - "1883:1883"
-      - "3389:3389"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_certs:/certs
@@ -50,10 +48,6 @@ configs:
               entryPoint:
                 to: websecure
                 scheme: https
-        mqtt:
-          address: ":1883"
-        rdp:
-          address: ":3389"
         metrics:
           address: ":8082"
 

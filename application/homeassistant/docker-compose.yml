@@ -38,14 +38,10 @@ services:
     environment:
       - MQTT_USER=${MQTT_USER}
       - MQTT_PASSWORD=${MQTT_PASSWORD}
+    ports:
+      - "1883:1883"
     networks:
       - proxy
-    labels:
-      - "traefik.enable=true"
-      - "traefik.tcp.routers.mqtt.entrypoints=mqtt"
-      - "traefik.tcp.routers.mqtt.rule=HostSNI(`*`)"
-      - "traefik.tcp.services.mqtt.loadbalancer.server.port=1883"
-      - "traefik.docker.network=proxy"
 
 configs:
   mosquitto_config:
