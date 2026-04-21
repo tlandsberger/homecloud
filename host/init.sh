@@ -34,13 +34,14 @@ ansible-galaxy collection install -r host/requirements.yml
 mapfile -t partitions < <(lsblk -rno NAME,FSTYPE,UUID,SIZE,MOUNTPOINT 2>/dev/null | awk '$3 != ""')
 
 pick_partition() {
-    echo ""
-    echo "$1"
+    echo "" >&2
+    echo "$1" >&2
     local options=()
     for line in "${partitions[@]}"; do
         read -r name fstype uuid size mountpoint <<< "$line"
         options+=("$name  ${size}  ${fstype}  UUID=${uuid}  ${mountpoint}")
     done
+    local PS3="Auswahl: "
     select opt in "${options[@]}" "Überspringen"; do
         if [[ "$REPLY" -le "${#partitions[@]}" ]] 2>/dev/null; then
             echo "${partitions[$((REPLY - 1))]}" | awk '{print $3}'
