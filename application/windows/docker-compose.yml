@@ -17,7 +17,8 @@ services:
       - CPU_CORES=4
       - DISK_SIZE=128G
     ports:
-      - "3389:3389"
+      - "3389:3389/tcp"
+      - "3389:3389/udp"
     volumes:
       - windows_data:/storage
     networks:
