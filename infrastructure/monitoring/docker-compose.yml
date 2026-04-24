@@ -82,7 +82,16 @@ services:
       - --path.sysfs=/host/sys
       - --path.rootfs=/rootfs
       - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
-      - --no-collector.thermal_zone
+    networks:
+      - monitoring
+
+  smartctl_exporter:
+    image: prometheuscommunity/smartctl-exporter:v0.13.0
+    container_name: smartctl_exporter
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /dev:/dev:ro
     networks:
       - monitoring
 
@@ -234,6 +243,9 @@ configs:
         - job_name: node
           static_configs:
             - targets: ["node_exporter:9100"]
+        - job_name: smartctl
+          static_configs:
+            - targets: ["smartctl_exporter:9633"]
 
   grafana_datasources:
     content: |
