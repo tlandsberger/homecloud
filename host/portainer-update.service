@@ -1,0 +1,9 @@
+[Unit]
+Description=Portainer stack aktualisieren
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/git -C {{ playbook_dir }}/.. pull --ff-only
+ExecStart=/usr/bin/docker compose -f {{ playbook_dir }}/../infrastructure/portainer/docker-compose.yml up -d --pull always

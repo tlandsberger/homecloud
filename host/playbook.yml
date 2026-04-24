@@ -211,36 +211,17 @@
 
     # --- Portainer auto-update Timer ---
     - name: portainer-update.service deployen
-      ansible.builtin.copy:
+      ansible.builtin.template:
+        src: portainer-update.service
         dest: /etc/systemd/system/portainer-update.service
         mode: "0644"
-        content: |
-          [Unit]
-          Description=Portainer stack aktualisieren
-          After=docker.service network-online.target
-          Requires=docker.service
-
-          [Service]
-          Type=oneshot
-          ExecStartPre=/usr/bin/git -C {{ playbook_dir }}/.. pull --ff-only
-          ExecStart=/usr/bin/docker compose -f {{ playbook_dir }}/../infrastructure/portainer/docker-compose.yml up -d --pull always
       notify: portainer-update.timer neu laden
 
     - name: portainer-update.timer deployen
       ansible.builtin.copy:
+        src: portainer-update.timer
         dest: /etc/systemd/system/portainer-update.timer
         mode: "0644"
-        content: |
-          [Unit]
-          Description=Portainer stack regelmäßig aktualisieren
-
-          [Timer]
-          OnBootSec=2min
-          OnUnitActiveSec=5min
-          Persistent=true
-
-          [Install]
-          WantedBy=timers.target
       notify: portainer-update.timer neu laden
 
     - name: portainer-update.timer aktivieren und starten
