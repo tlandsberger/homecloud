@@ -444,7 +444,7 @@ Für jeden Stack in Portainer: **Stacks → Add stack → Repository**
 | 2           | `traefik`       | `infrastructure/traefik/docker-compose.yml`      |
 | 3           | `cloudflared`   | `infrastructure/cloudflared/docker-compose.yml`  |
 | 4           | `monitoring`    | `infrastructure/monitoring/docker-compose.yml`   |
-| 5           | `keycloak`      | `infrastructure/keycloak/docker-compose.yml`     |
+| 5           | `authentik`     | `infrastructure/authentik/docker-compose.yml`    |
 | 6           | `samba`         | `infrastructure/samba/docker-compose.yml`        |
 | 7           | `backup`        | `infrastructure/backup/docker-compose.yml`       |
 | 8           | `homeassistant` | `application/homeassistant/docker-compose.yml`   |
@@ -475,14 +475,14 @@ Nach dem Deploy von CoreDNS: **FritzBox DHCP-DNS auf NUC-IP umstellen** (Schritt
 
 Keine Secrets erforderlich – alle Konfigurationen sind im Compose-File enthalten.
 
-#### infrastructure/keycloak
+#### infrastructure/authentik
 
-| Variable               | Wert                                                                                                      |
-|------------------------|-----------------------------------------------------------------------------------------------------------|
-| `KEYCLOAK_DB_PASSWORD` | PostgreSQL-Passwort für Keycloak. Generieren: `openssl rand -base64 32`                                   |
+| Variable              | Wert                                                                    |
+|-----------------------|-------------------------------------------------------------------------|
+| `AUTHENTIK_SECRET_KEY` | Interner Signing-Key. Generieren: `openssl rand -base64 60`           |
+| `AUTHENTIK_DB_PASSWORD` | PostgreSQL-Passwort für Authentik. Generieren: `openssl rand -base64 32` |
 
-> Beim ersten Start wird ein temporärer Admin-Account (`temp-admin` / `temp-admin`) erstellt.
-> Nach dem ersten Login **sofort ändern**.
+> Initial-Setup nach dem ersten Start: `https://auth.tlandsberger.de/if/flow/initial-setup/`
 
 #### infrastructure/samba
 
