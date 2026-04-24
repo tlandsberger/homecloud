@@ -93,7 +93,7 @@ services:
     command:
       - --smartctl.interval=6h
     volumes:
-      - /dev:/dev:ro
+      - /dev:/dev
     networks:
       - monitoring
 
