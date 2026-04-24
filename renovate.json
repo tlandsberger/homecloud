@@ -4,6 +4,7 @@
   "dependencyDashboard": true,
   "timezone": "Europe/Berlin",
   "automergeSchedule": "* 3-4 * * *",
+  "ignoreTests": true,
   "prHourlyLimit": 0,
   "packageRules": [
     {
