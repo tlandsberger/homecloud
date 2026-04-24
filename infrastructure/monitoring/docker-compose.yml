@@ -90,6 +90,8 @@ services:
     container_name: smartctl_exporter
     restart: unless-stopped
     privileged: true
+    command:
+      - --smartctl.interval=6h
     volumes:
       - /dev:/dev:ro
     networks:
