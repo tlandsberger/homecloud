@@ -8,6 +8,7 @@ services:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
       - cloudflare
+      - monitoring
     labels:
       - "prometheus.scrape=true"
       - "prometheus.port=cloudflared:60123"
@@ -15,3 +16,6 @@ services:
 networks:
   cloudflare:
     name: cloudflare
+  monitoring:
+    external: true
+    name: monitoring_monitoring
