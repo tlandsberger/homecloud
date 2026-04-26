@@ -32,6 +32,8 @@ After a `git push`, Portainer auto-redeploys changed stacks within 60 seconds.
 
 All containers share the external Docker network `proxy`. Traefik discovers services via Docker labels.
 
+**Home Assistant Auto-Discovery:** Home Assistant additionally joins a macvlan network (`lan`) with static IP `192.168.11.12` on interface `enp87s0`. This gives it a real LAN presence for mDNS/SSDP discovery. Traefik and inter-container communication still use the `proxy` network. Note: the NUC host (192.168.11.11) cannot reach the macvlan IP directly (Docker limitation) — all host-to-HA traffic goes via the `proxy` network.
+
 ### TLS
 
 Traefik fetches Let's Encrypt certificates via DNS challenge using `CF_DNS_API_TOKEN`. Cloudflare mode must be **Full (Strict)**. The cloudflared tunnel backend uses **No TLS Verify** because cloudflared connects via the internal Docker hostname `traefik`, which doesn't match the public certificate.

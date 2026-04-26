@@ -10,7 +10,9 @@ services:
     environment:
       - TZ=Europe/Berlin
     networks:
-      - proxy
+      proxy:
+      lan:
+        ipv4_address: 192.168.11.12
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.homeassistant.rule=Host(`homeassistant.tlandsberger.de`)"
@@ -67,3 +69,12 @@ networks:
   proxy:
     external: true
     name: proxy
+  lan:
+    driver: macvlan
+    driver_opts:
+      parent: enp87s0
+    ipam:
+      config:
+        - subnet: 192.168.11.0/24
+          gateway: 192.168.11.1
+          ip_range: 192.168.11.12/32
