@@ -17,6 +17,10 @@ services:
       - "traefik.http.routers.homeassistant.entrypoints=websecure,cloudflare"
       - "traefik.http.routers.homeassistant.tls.certresolver=letsencrypt"
       - "traefik.http.services.homeassistant.loadbalancer.server.port=8123"
+      - "traefik.http.routers.vacuumrobot.rule=Host(`vacuum-robot.tlandsberger.de`)"
+      - "traefik.http.routers.vacuumrobot.entrypoints=websecure,cloudflare"
+      - "traefik.http.routers.vacuumrobot.tls.certresolver=letsencrypt"
+      - "traefik.http.services.vacuumrobot.loadbalancer.server.url=http://vacuum-robot.fritz.box"
       - "traefik.docker.network=proxy"
 
   mosquitto:
