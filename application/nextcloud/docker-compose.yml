@@ -20,7 +20,7 @@ services:
       - nextcloud
 
   nextcloud:
-    image: nextcloud:33.0.2-apache
+    image: nextcloud:33.0.3-apache
     container_name: nextcloud
     restart: unless-stopped
     environment:
