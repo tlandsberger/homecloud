@@ -213,7 +213,7 @@
     - name: Git safe.directory für root setzen
       community.general.git_config:
         name: safe.directory
-        value: "{{ playbook_dir }}/.."
+        value: "{{ (playbook_dir ~ '/..') | realpath }}"
         scope: global
 
     - name: portainer-update.service deployen
