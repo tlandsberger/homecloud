@@ -13,7 +13,7 @@ services:
       - nextcloud
 
   nextcloud_redis:
-    image: redis:8.6.2-alpine
+    image: redis:8.6.3-alpine
     container_name: nextcloud_redis
     restart: unless-stopped
     networks:
