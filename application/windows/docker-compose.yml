@@ -1,6 +1,6 @@
 services:
   windows:
-    image: ghcr.io/dockur/windows:5.14
+    image: ghcr.io/dockur/windows:5.15
     container_name: windows
     restart: unless-stopped
     stop_grace_period: 2m
