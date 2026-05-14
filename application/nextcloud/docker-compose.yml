@@ -1,6 +1,6 @@
 services:
   nextcloud_db:
-    image: postgres:18.3-alpine
+    image: postgres:18.4-alpine
     container_name: nextcloud_db
     restart: unless-stopped
     environment:
