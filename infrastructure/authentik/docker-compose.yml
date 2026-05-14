@@ -1,6 +1,6 @@
 services:
   authentik_db:
-    image: postgres:18.3-alpine
+    image: postgres:18.4-alpine
     container_name: authentik_db
     restart: unless-stopped
     environment:
