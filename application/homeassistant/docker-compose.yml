@@ -9,6 +9,7 @@ services:
       - homeassistant_config:/config
     environment:
       - TZ=Europe/Berlin
+    hostname: homeassistant
     mac_address: "02:42:c0:a8:0b:0c"
     networks:
       proxy:
