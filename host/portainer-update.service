@@ -5,5 +5,6 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
-ExecStartPre=/usr/bin/git -C {{ playbook_dir }}/.. pull --ff-only
-ExecStart=/usr/bin/docker compose -f {{ playbook_dir }}/../infrastructure/portainer/docker-compose.yml up -d --pull always
+{% set repo_dir = (playbook_dir ~ '/..') | realpath %}
+ExecStartPre=/usr/bin/git -C {{ repo_dir }} -c safe.directory={{ repo_dir }} pull --ff-only
+ExecStart=/usr/bin/docker compose -f {{ repo_dir }}/infrastructure/portainer/docker-compose.yml up -d --pull always

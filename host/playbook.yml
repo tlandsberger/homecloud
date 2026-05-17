@@ -210,12 +210,6 @@
         'Created' in portainer_result.stdout
 
     # --- Portainer auto-update Timer ---
-    - name: Git safe.directory für root setzen
-      community.general.git_config:
-        name: safe.directory
-        value: "{{ (playbook_dir ~ '/..') | realpath }}"
-        scope: global
-
     - name: portainer-update.service deployen
       ansible.builtin.template:
         src: portainer-update.service
