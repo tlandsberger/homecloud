@@ -13,7 +13,7 @@ services:
       - authentik
 
   authentik_server:
-    image: ghcr.io/goauthentik/server:2026.5.2
+    image: ghcr.io/goauthentik/server:2026.5.3
     container_name: authentik_server
     restart: unless-stopped
     command: server
@@ -42,7 +42,7 @@ services:
       - "prometheus.port=authentik_server:9300"
 
   authentik_worker:
-    image: ghcr.io/goauthentik/server:2026.5.2
+    image: ghcr.io/goauthentik/server:2026.5.3
     container_name: authentik_worker
     restart: unless-stopped
     command: worker
