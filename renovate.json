@@ -6,6 +6,7 @@
   "automergeSchedule": "* 3-4 * * *",
   "ignoreTests": true,
   "prHourlyLimit": 0,
+  "assignees" : ["tlandsberger"],
   "packageRules": [
     {
       "matchUpdateTypes": ["major"],
