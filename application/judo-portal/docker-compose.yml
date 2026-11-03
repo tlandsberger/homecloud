@@ -1,0 +1,192 @@
+# Vereinsportal „WTSV Judo“ (https://github.com/tlandsberger/judo-portal, docs/deployment.md)
+#
+#   https://judo.tlandsberger.de        PWA + API + Keycloak-Login (öffentlich, Cloudflare-Access-Bypass)
+#   https://judo-admin.tlandsberger.de  Keycloak-Admin-Konsole (hinter Cloudflare-Access-OTP)
+#
+# judo_web (Caddy) liefert die PWA aus und leitet /api ans Backend und /auth an Keycloak weiter.
+# Den Realm "judo" einmalig nach der Checkliste in judo-portal/docs/deployment.md einrichten.
+services:
+  judo_db:
+    image: postgres:18.6-alpine
+    container_name: judo_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=portal
+      - POSTGRES_USER=portal
+      - POSTGRES_PASSWORD=${JUDO_DB_PASSWORD}
+    volumes:
+      - judo_db_data:/var/lib/postgresql
+    networks:
+      - judo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portal -d portal"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  judo_keycloak_db:
+    image: postgres:18.6-alpine
+    container_name: judo_keycloak_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=keycloak
+      - POSTGRES_USER=keycloak
+      - POSTGRES_PASSWORD=${JUDO_KEYCLOAK_DB_PASSWORD}
+    volumes:
+      - judo_keycloak_db_data:/var/lib/postgresql
+    networks:
+      - judo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  judo_keycloak:
+    image: keycloak/keycloak:26.8.0
+    container_name: judo_keycloak
+    restart: unless-stopped
+    command: start
+    environment:
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://judo_keycloak_db:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=${JUDO_KEYCLOAK_DB_PASSWORD}
+      - KC_HTTP_ENABLED=true
+      - KC_HTTP_RELATIVE_PATH=/auth
+      - KC_HOSTNAME=https://judo.tlandsberger.de/auth
+      - KC_HOSTNAME_ADMIN=https://judo-admin.tlandsberger.de/auth
+      - KC_PROXY_HEADERS=xforwarded
+      - KC_HEALTH_ENABLED=true
+      # Nur beim ersten Start: legt den Admin im Master-Realm an (danach in der Konsole ändern).
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=${JUDO_KEYCLOAK_ADMIN_PASSWORD}
+      - TZ=Europe/Berlin
+    depends_on:
+      judo_keycloak_db:
+        condition: service_healthy
+    networks:
+      judo:
+        # Hostname ohne Unterstrich: Javas HTTP-Client lehnt "judo_keycloak" als Host ab.
+        aliases:
+          - keycloak
+      proxy:
+    labels:
+      # Nur die Admin-Konsole läuft direkt über Traefik, alles andere über judo_web.
+      - "traefik.enable=true"
+      - "traefik.http.routers.judo-admin.rule=Host(`judo-admin.tlandsberger.de`)"
+      - "traefik.http.routers.judo-admin.entrypoints=websecure,cloudflare"
+      - "traefik.http.routers.judo-admin.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.judo-admin.middlewares=judo-admin-root"
+      - "traefik.http.middlewares.judo-admin-root.redirectregex.regex=^https://judo-admin\\.tlandsberger\\.de/?$$"
+      - "traefik.http.middlewares.judo-admin-root.redirectregex.replacement=https://judo-admin.tlandsberger.de/auth/admin/"
+      - "traefik.http.services.judo-admin.loadbalancer.server.port=8080"
+      - "traefik.docker.network=proxy"
+
+  judo_backend:
+    image: ghcr.io/tlandsberger/judo-portal-backend:1.0.0
+    container_name: judo_backend
+    restart: unless-stopped
+    environment:
+      - PORTAL_DB_URL=jdbc:postgresql://judo_db:5432/portal
+      - PORTAL_DB_USER=portal
+      - PORTAL_DB_PASSWORD=${JUDO_DB_PASSWORD}
+      - PORTAL_PUBLIC_URL=https://judo.tlandsberger.de
+      # Tokens tragen die öffentliche Adresse als Issuer, die Schlüssel holt das Backend intern.
+      - PORTAL_ISSUER_URI=https://judo.tlandsberger.de/auth/realms/judo
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/auth/realms/judo/protocol/openid-connect/certs
+      # Keycloak-Admin-API für Einladungen (Client judo-portal-backend)
+      - PORTAL_KEYCLOAK_URL=http://keycloak:8080/auth
+      - PORTAL_KEYCLOAK_CLIENT_SECRET=${JUDO_BACKEND_CLIENT_SECRET}
+      - SPRINGDOC_API_DOCS_ENABLED=false
+      - SPRINGDOC_SWAGGER_UI_ENABLED=false
+      - TZ=Europe/Berlin
+    depends_on:
+      judo_db:
+        condition: service_healthy
+    networks:
+      judo:
+        aliases:
+          - backend
+
+  judo_web:
+    image: ghcr.io/tlandsberger/judo-portal-web:1.0.0
+    container_name: judo_web
+    restart: unless-stopped
+    environment:
+      # Interne Aliase im Netz "judo"
+      - BACKEND_URL=backend:8080
+      - KEYCLOAK_URL=keycloak:8080
+    depends_on:
+      - judo_backend
+      - judo_keycloak
+    networks:
+      - judo
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.judo.rule=Host(`judo.tlandsberger.de`)"
+      - "traefik.http.routers.judo.entrypoints=websecure,cloudflare"
+      - "traefik.http.routers.judo.tls.certresolver=letsencrypt"
+      - "traefik.http.services.judo.loadbalancer.server.port=8080"
+      - "traefik.docker.network=proxy"
+
+  # Tägliche, konsistente Dumps beider Datenbanken (02:00) – das restic-Backup (02:30) sichert das Volume mit.
+  judo_db_dump:
+    image: postgres:18.6-alpine
+    container_name: judo_db_dump
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/judo-db-dump.sh"]
+    environment:
+      - JUDO_DB_PASSWORD=${JUDO_DB_PASSWORD}
+      - JUDO_KEYCLOAK_DB_PASSWORD=${JUDO_KEYCLOAK_DB_PASSWORD}
+      - DUMP_HOUR=02
+      - KEEP_DAYS=14
+      - TZ=Europe/Berlin
+    configs:
+      - source: judo_db_dump
+        target: /judo-db-dump.sh
+    volumes:
+      - judo_db_dumps:/dumps
+    depends_on:
+      - judo_db
+      - judo_keycloak_db
+    networks:
+      - judo
+
+configs:
+  judo_db_dump:
+    content: |
+      #!/bin/sh
+      # Einmal täglich zur Stunde DUMP_HOUR beide Datenbanken sichern, ältere Dumps als KEEP_DAYS löschen.
+      # Sofort-Dump: docker exec judo_db_dump sh /judo-db-dump.sh now
+      set -eu
+      dump() {
+        day=$$(date +%F)
+        PGPASSWORD="$$JUDO_DB_PASSWORD" pg_dump -h judo_db -U portal -d portal -Fc -f "/dumps/portal-$$day.dump.tmp"
+        mv "/dumps/portal-$$day.dump.tmp" "/dumps/portal-$$day.dump"
+        PGPASSWORD="$$JUDO_KEYCLOAK_DB_PASSWORD" pg_dump -h judo_keycloak_db -U keycloak -d keycloak -Fc -f "/dumps/keycloak-$$day.dump.tmp"
+        mv "/dumps/keycloak-$$day.dump.tmp" "/dumps/keycloak-$$day.dump"
+        find /dumps -name '*.dump' -mtime +"$$KEEP_DAYS" -delete
+        echo "$$(date): Dumps für $$day geschrieben"
+      }
+      if [ "$${1:-}" = "now" ]; then dump; exit 0; fi
+      echo "Warte auf $$DUMP_HOUR:00 Uhr (Dumps in /dumps, $$KEEP_DAYS Tage)"
+      while true; do
+        if [ "$$(date +%H)" = "$$DUMP_HOUR" ] && [ ! -f "/dumps/portal-$$(date +%F).dump" ]; then
+          dump || echo "$$(date): Dump fehlgeschlagen" >&2
+        fi
+        sleep 60
+      done
+
+volumes:
+  judo_db_data:
+  judo_keycloak_db_data:
+  judo_db_dumps:
+
+networks:
+  judo:
+    driver: bridge
+  proxy:
+    external: true
+    name: proxy

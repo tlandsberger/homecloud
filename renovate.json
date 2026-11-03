@@ -29,6 +29,14 @@
         "portainer/portainer-ce"
       ],
       "automerge": false
+    },
+    {
+      "description": "Judo-Portal: Backend und Web immer gemeinsam aktualisieren",
+      "matchPackageNames": [
+        "ghcr.io/tlandsberger/judo-portal-backend",
+        "ghcr.io/tlandsberger/judo-portal-web"
+      ],
+      "groupName": "judo-portal"
     }
   ]
 }
