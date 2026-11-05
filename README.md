@@ -451,6 +451,7 @@ Für jeden Stack in Portainer: **Stacks → Add stack → Repository**
 | 9           | `jellyfin`      | `application/jellyfin/docker-compose.yml`        |
 | 10          | `nextcloud`     | `application/nextcloud/docker-compose.yml`       |
 | 11          | `windows`       | `application/windows/docker-compose.yml`         |
+| 12          | `judo-portal`   | `application/judo-portal/docker-compose.yml`     |
 
 Nach dem Deploy von CoreDNS: **FritzBox DHCP-DNS auf NUC-IP umstellen** (Schritt 3.2).
 
@@ -512,3 +513,42 @@ und die Media-Disk unter `/mnt/media`.
 
 Keine Secrets erforderlich. Benötigt KVM-Unterstützung auf dem Host (`/dev/kvm`).
 Erreichbar unter `win.tlandsberger.de` (Web-UI) und per RDP auf Port 3389 (direktes Host-Port-Binding).
+
+#### application/judo-portal
+
+Vereinsportal „WTSV Judo“ ([tlandsberger/judo-portal](https://github.com/tlandsberger/judo-portal),
+Details in dessen `docs/deployment.md`).
+
+| Adresse                              | Ziel                                   | Zugang                                   |
+|--------------------------------------|----------------------------------------|------------------------------------------|
+| `https://judo.tlandsberger.de`       | `judo_web` (PWA, `/api`, `/auth`)      | **öffentlich** (Access-Bypass, s. unten) |
+| `https://judo-admin.tlandsberger.de` | `judo_keycloak` (Keycloak-Admin)       | Cloudflare Access OTP (Wildcard)         |
+
+| Variable                       | Wert                                                                                                   |
+|--------------------------------|--------------------------------------------------------------------------------------------------------|
+| `JUDO_DB_PASSWORD`             | PostgreSQL-Passwort der Portal-Datenbank. Generieren: `openssl rand -hex 32`                            |
+| `JUDO_KEYCLOAK_DB_PASSWORD`    | PostgreSQL-Passwort der Keycloak-Datenbank. Generieren: `openssl rand -hex 32`                          |
+| `JUDO_KEYCLOAK_ADMIN_PASSWORD` | Passwort des temporären Keycloak-Admins `admin` (nur beim ersten Start)                                 |
+| `JUDO_BACKEND_CLIENT_SECRET`   | Secret des Keycloak-Clients `judo-portal-backend` – erst nach der Realm-Einrichtung bekannt, dann eintragen und Stack neu deployen |
+
+**Cloudflare Access: Portal freigeben** (einmalig, sonst sehen Vereinsmitglieder das OTP):
+
+1. [one.dash.cloudflare.com](https://one.dash.cloudflare.com) → **Access controls → Applications → Add an application → Self-hosted**
+2. Application name: `Judo-Portal`, Application domain: `judo.tlandsberger.de` (nur diese Subdomain)
+3. Policy: Action **Bypass**, Include **Everyone**
+
+Die spezifischere Application hat Vorrang vor der Wildcard `*.tlandsberger.de`.
+`judo-admin.tlandsberger.de` bleibt dadurch hinter dem OTP.
+
+**Erster Start:**
+
+1. Stack mit den drei ersten Variablen deployen (`JUDO_BACKEND_CLIENT_SECRET` vorerst beliebig).
+2. Realm `judo` nach der Checkliste in `judo-portal/docs/deployment.md` einrichten. Schritt 0 ist ein Befehl auf dem
+   NUC, der den Master-Realm auf `judo-admin.tlandsberger.de` umstellt.
+3. Secret des Clients `judo-portal-backend` als `JUDO_BACKEND_CLIENT_SECRET` eintragen und Stack neu deployen.
+
+**Updates:** Neue Versionen entstehen per Git-Tag im judo-portal-Repo. Renovate aktualisiert Backend und Web
+gemeinsam (Gruppe `judo-portal`); Patch und Minor werden automatisch gemergt.
+
+**Backup:** `judo_db_dump` schreibt täglich um 02:00 `pg_dump`-Dateien beider Datenbanken ins Volume
+`judo-portal_judo_db_dumps` (14 Tage), das restic um 02:30 mitsichert. Restore: siehe `judo-portal/docs/deployment.md`.
