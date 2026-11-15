@@ -457,6 +457,7 @@ Für jeden Stack in Portainer: **Stacks → Add stack → Repository**
 | 9           | `jellyfin`      | `application/jellyfin/docker-compose.yml`        |
 | 10          | `nextcloud`     | `application/nextcloud/docker-compose.yml`       |
 | 11          | `windows`       | `application/windows/docker-compose.yml`         |
+| 12          | `judo-portal`   | `application/judo-portal/docker-compose.yml`     |
 
 Nach dem Deploy von CoreDNS: **FritzBox DHCP-DNS auf NUC-IP umstellen** (Schritt 3.2).
 
@@ -518,3 +519,35 @@ und die Media-Disk unter `/mnt/media`.
 
 Keine Secrets erforderlich. Benötigt KVM-Unterstützung auf dem Host (`/dev/kvm`).
 Erreichbar unter `win.tlandsberger.de` (Web-UI) und per RDP auf Port 3389 (direktes Host-Port-Binding).
+
+#### application/judo-portal
+
+Vereinsportal „WTSV Judo“ ([tlandsberger/judo-portal](https://github.com/tlandsberger/judo-portal), Details in
+dessen `docs/betrieb.md`). Ein Container mit eingebauter Anmeldung und SQLite im Volume `judo_portal_data`
+(inkl. täglicher Datenbank-Schnappschüsse um 02:00 in `backups/`, die restic um 02:30 mitsichert).
+Erreichbar unter `https://judo.tlandsberger.de`.
+
+| Variable                   | Wert                                                                                   |
+|----------------------------|----------------------------------------------------------------------------------------|
+| `JUDO_SECRET_KEY`          | Geheimschlüssel der App. Generieren: `openssl rand -base64 48`                         |
+| `JUDO_INITIAL_ADMIN_EMAIL` | Deine Mail-Adresse – wird beim ersten Start als Administrator eingeladen               |
+| `JUDO_EMAIL_USER`          | IONOS-Postfach für den Versand, z. B. `portal@tlandsberger.de` (zugleich Absender)     |
+| `JUDO_EMAIL_PASSWORD`      | Passwort des IONOS-Postfachs                                                           |
+
+**Cloudflare Access: Portal freigeben** (einmalig, sonst sehen Vereinsmitglieder das OTP):
+
+1. [one.dash.cloudflare.com](https://one.dash.cloudflare.com) → **Access controls → Applications → Add an application → Self-hosted**
+2. Application name: `Judo-Portal`, Application domain: `judo.tlandsberger.de`
+3. Policy: Action **Bypass**, Include **Everyone**
+
+Die spezifischere Application hat Vorrang vor der Wildcard `*.tlandsberger.de`. Die Anmeldung übernimmt das Portal
+selbst (Passkey, Passwort oder Code per Mail).
+
+**Erster Start:** Nach dem Deploy kommt die Einladung an `JUDO_INITIAL_ADMIN_EMAIL` (der Link steht zur Not auch im
+Log: `docker logs judo_portal`). Link öffnen, Einladung annehmen, Passkey oder Passwort einrichten.
+
+**Updates:** Das Portal veröffentlicht sonntags automatisch neue Versionen. Renovate aktualisiert den Image-Tag hier;
+Patch und Minor werden automatisch gemergt.
+
+**Restore:** Container stoppen, im Volume `backups/portal-JJJJ-MM-TT.sqlite3` nach `portal.sqlite3` kopieren,
+`portal.sqlite3-wal` und `-shm` löschen, Container starten.
