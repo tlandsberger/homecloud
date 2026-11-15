@@ -16,6 +16,9 @@ services:
       - PORTAL_EMAIL_USER=${JUDO_EMAIL_USER}
       - PORTAL_EMAIL_PASSWORD=${JUDO_EMAIL_PASSWORD}
       - PORTAL_EMAIL_FROM=Wedeler TSV Judo <${JUDO_EMAIL_USER}>
+      # Push-Benachrichtigungen; leer = alles per Mail
+      - PORTAL_VAPID_PUBLIC_KEY=${JUDO_VAPID_PUBLIC_KEY:-}
+      - PORTAL_VAPID_PRIVATE_KEY=${JUDO_VAPID_PRIVATE_KEY:-}
       - TZ=Europe/Berlin
     volumes:
       - judo_portal_data:/data
