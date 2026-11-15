@@ -32,6 +32,8 @@ After a `git push`, Portainer auto-redeploys changed stacks within 60 seconds.
 
 All containers share the external Docker network `proxy`. Traefik discovers services via Docker labels.
 
+cloudflared reaches Traefik's `cloudflare` entrypoint (:8443, not published on the host) only via the `cloudflare` network (fixed subnet `10.250.0.0/24`, created by the cloudflared stack). That entrypoint trusts `X-Forwarded-For` from this subnet only (`forwardedHeaders.trustedIPs`), so services see the real visitor IP Cloudflare puts there; on `websecure` Traefik overwrites the header with the LAN client IP. Services must read the client IP from `X-Forwarded-For` (rightmost non-proxy entry), not from Cloudflare-specific headers.
+
 **Home Assistant Auto-Discovery:** Home Assistant additionally joins a macvlan network (`lan`) with static IP `192.168.11.12` on interface `enp87s0`. This gives it a real LAN presence for mDNS/SSDP discovery. Traefik and inter-container communication still use the `proxy` network. Note: the NUC host (192.168.11.11) cannot reach the macvlan IP directly (Docker limitation) — all host-to-HA traffic goes via the `proxy` network.
 
 ### TLS

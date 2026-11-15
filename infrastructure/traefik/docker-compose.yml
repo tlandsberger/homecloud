@@ -6,7 +6,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8443:8443"
+      # 8443 (Eingang „cloudflare“) bewusst nicht freigegeben: nur cloudflared erreicht ihn über das Netz „cloudflare“
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_certs:/certs
@@ -39,6 +39,11 @@ configs:
       entryPoints:
         cloudflare:
           address: ":8443"
+          # Nur cloudflared (Netz „cloudflare“) darf X-Forwarded-For mitbringen: So kommt die echte Besucher-IP, die
+          # Cloudflare dort einträgt, bei den Diensten an. Am LAN-Eingang setzt Traefik den Header selbst.
+          forwardedHeaders:
+            trustedIPs:
+              - "10.250.0.0/24"
         websecure:
           address: ":443"
         web:

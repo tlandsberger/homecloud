@@ -14,8 +14,13 @@ services:
       - "prometheus.port=cloudflared:60123"
 
 networks:
+  # Nur cloudflared und Traefik. Festes Subnetz: Traefik übernimmt X-Forwarded-For (echte Besucher-IP von
+  # Cloudflare) nur von hier, siehe forwardedHeaders im Eingang „cloudflare“ (infrastructure/traefik).
   cloudflare:
     name: cloudflare
+    ipam:
+      config:
+        - subnet: 10.250.0.0/24
   monitoring:
     external: true
     name: monitoring_monitoring
