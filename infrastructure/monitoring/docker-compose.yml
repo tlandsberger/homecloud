@@ -59,7 +59,7 @@ services:
   cadvisor:
     image: ghcr.io/google/cadvisor:v0.60.6
     container_name: cadvisor
-    # skip unused collectors.
+    restart: unless-stopped
     command:
       - --housekeeping_interval=30s
       - --max_housekeeping_interval=60s
