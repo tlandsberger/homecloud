@@ -3,7 +3,11 @@
 # Öffentlich unter https://judo.tlandsberger.de (Cloudflare-Access-Bypass, siehe README).
 services:
   judo_portal:
-    image: ghcr.io/tlandsberger/judo-portal:0.4.0
+    # Eigenes Image: immer die neueste Release-Version (ohne Renovate). Damit Portainer sie ohne Git-Änderung holt,
+    # sind am Stack „Re-pull image“ und „Force redeployment“ eingeschaltet.
+    # Zurückrollen: vorübergehend eine feste Version eintragen, z. B. :0.4.0
+    image: ghcr.io/tlandsberger/judo-portal:latest
+    pull_policy: always
     container_name: judo_portal
     restart: unless-stopped
     environment:
