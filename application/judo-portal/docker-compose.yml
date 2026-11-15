@@ -1,4 +1,4 @@
-# Vereinsportal „WTSV Judo“ (https://github.com/tlandsberger/judo-portal, docs/betrieb.md)
+# Vereinsportal „Wedeler TSV Judo“ (https://github.com/tlandsberger/judo-portal, docs/betrieb.md)
 # Ein Container: Django mit eingebauter Anmeldung und SQLite im Volume /data (inkl. nächtlicher Backups).
 # Öffentlich unter https://judo.tlandsberger.de (Cloudflare-Access-Bypass, siehe README).
 services:
@@ -15,7 +15,7 @@ services:
       - PORTAL_EMAIL_PORT=587
       - PORTAL_EMAIL_USER=${JUDO_EMAIL_USER}
       - PORTAL_EMAIL_PASSWORD=${JUDO_EMAIL_PASSWORD}
-      - PORTAL_EMAIL_FROM=WTSV Judo <${JUDO_EMAIL_USER}>
+      - PORTAL_EMAIL_FROM=Wedeler TSV Judo <${JUDO_EMAIL_USER}>
       - TZ=Europe/Berlin
     volumes:
       - judo_portal_data:/data
