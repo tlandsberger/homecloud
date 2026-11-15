@@ -60,6 +60,11 @@ services:
     image: ghcr.io/google/cadvisor:v0.60.6
     container_name: cadvisor
     restart: unless-stopped
+    command:
+      - --housekeeping_interval=30s
+      - --max_housekeeping_interval=60s
+      - --docker_only=true
+      - --enable_metrics=cpu,memory,network,diskIO,oom_event
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
