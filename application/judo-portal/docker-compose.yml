@@ -3,7 +3,7 @@
 # Öffentlich unter https://judo.tlandsberger.de (Cloudflare-Access-Bypass, siehe README).
 services:
   judo_portal:
-    image: ghcr.io/tlandsberger/judo-portal:0.1.0
+    image: ghcr.io/tlandsberger/judo-portal:0.2.0
     container_name: judo_portal
     restart: unless-stopped
     environment:
