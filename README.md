@@ -65,10 +65,10 @@ Cloudflare Edge  ──  Zero Trust Access Check (E-Mail OTP)
       │
       │  Cloudflare Zero Trust Tunnel (ausgehende Verbindung von cloudflared)
       ▼
-cloudflared  (Docker, Netzwerk: proxy)
+cloudflared  (Docker, Netzwerk: cloudflare)
       │
       ▼
-Traefik  (Docker, Port 443, Let's Encrypt TLS)
+Traefik  (Docker, Eingang cloudflare: Port 8443, nur im Netz cloudflare)
       │
       ▼
 Service (z.B. portainer.tlandsberger.de)
@@ -101,7 +101,13 @@ Traefik bezieht Let's Encrypt-Zertifikate über **DNS-Challenge** – kein einge
 
 | Netzwerk | Typ    | Zweck                                            |
 |----------|--------|--------------------------------------------------|
-| `proxy`  | extern | Verbindet Traefik, cloudflared und alle Services |
+| `proxy`  | extern | Verbindet Traefik und alle Services |
+| `cloudflare` | vom cloudflared-Stack angelegt, `10.250.0.0/24` | Nur cloudflared und Traefik (Eingang `cloudflare`, Port 8443, nicht am Host freigegeben) |
+
+**Echte Besucher-IP:** Cloudflare trägt die IP der Besucher in `X-Forwarded-For` ein. Traefik übernimmt den Header am
+Eingang `cloudflare` nur aus dem Netz `cloudflare` (`forwardedHeaders.trustedIPs`) und hängt die cloudflared-IP an. Am
+LAN-Eingang (443) ersetzt Traefik einen mitgeschickten Header durch die Geräte-IP. Dienste werten deshalb nur
+`X-Forwarded-For` aus – von rechts der erste Eintrag, der kein Proxy ist.
 
 **Secret-Management:** Portainer Stack-Umgebungsvariablen (in Portainers Data-Volume)
 
