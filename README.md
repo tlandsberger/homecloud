@@ -533,6 +533,8 @@ Erreichbar unter `https://judo.tlandsberger.de`.
 | `JUDO_INITIAL_ADMIN_EMAIL` | Deine Mail-Adresse – wird beim ersten Start als Administrator eingeladen               |
 | `JUDO_EMAIL_USER`          | IONOS-Postfach für den Versand, z. B. `portal@tlandsberger.de` (zugleich Absender)     |
 | `JUDO_EMAIL_PASSWORD`      | Passwort des IONOS-Postfachs                                                           |
+| `JUDO_VAPID_PUBLIC_KEY`    | Optional, für Push-Benachrichtigungen. Erzeugen: `docker exec judo_portal python manage.py generate_vapid_keys` |
+| `JUDO_VAPID_PRIVATE_KEY`   | Optional, privater Schlüssel dazu (geheim halten; ein neues Paar beendet alle Push-Abos) |
 
 **Cloudflare Access: Portal freigeben** (einmalig, sonst sehen Vereinsmitglieder das OTP):
 
