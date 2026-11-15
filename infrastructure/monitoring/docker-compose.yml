@@ -60,6 +60,16 @@ services:
     image: ghcr.io/google/cadvisor:v0.60.6
     container_name: cadvisor
     restart: unless-stopped
+    # cAdvisor defaults are expensive (~10% CPU on the NUC): stats every 1s for
+    # every cgroup incl. systemd slices, plus periodic `du` over every
+    # container's writable layer for filesystem usage. Prometheus scrapes only
+    # every 30s, so collect at that pace, track Docker containers only and
+    # skip the disk-usage scan and other unused collectors.
+    command:
+      - --housekeeping_interval=30s
+      - --max_housekeeping_interval=60s
+      - --docker_only=true
+      - --enable_metrics=cpu,memory,network,diskIO,oom_event
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
