@@ -57,7 +57,7 @@ services:
       - "traefik.docker.network=proxy"
 
   cadvisor:
-    image: ghcr.io/google/cadvisor:v0.60.6
+    image: ghcr.io/google/cadvisor:v0.61.0
     container_name: cadvisor
     restart: unless-stopped
     command:
