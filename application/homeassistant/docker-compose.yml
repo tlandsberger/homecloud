@@ -30,7 +30,7 @@ services:
       - "traefik.docker.network=proxy"
 
   mosquitto:
-    image: eclipse-mosquitto:2.1.2-alpine
+    image: eclipse-mosquitto:2.1.4-alpine
     container_name: mosquitto
     restart: unless-stopped
     entrypoint:
