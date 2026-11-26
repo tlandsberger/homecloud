@@ -1,5 +1,6 @@
 # Vereinsportal „Wedeler TSV Judo“ (https://github.com/tlandsberger/judo-portal, docs/betrieb.md)
-# Ein Container: Django mit eingebauter Anmeldung und SQLite im Volume /data (inkl. nächtlicher Backups).
+# Portal: Django mit eingebauter Anmeldung und SQLite im Volume /data (inkl. nächtlicher Backups).
+# Dazu das Sprachmodell für den Assistenten „Uke“ (judo-portal ADR 0028), nur im internen Netz judo_portal.
 # Öffentlich unter https://judo.tlandsberger.de (Cloudflare-Access-Bypass, siehe README).
 services:
   judo_portal:
@@ -23,11 +24,14 @@ services:
       # Push-Benachrichtigungen; leer = alles per Mail
       - PORTAL_VAPID_PUBLIC_KEY=${JUDO_VAPID_PUBLIC_KEY:-}
       - PORTAL_VAPID_PRIVATE_KEY=${JUDO_VAPID_PRIVATE_KEY:-}
+      # Assistent Uke; leer = aus
+      - PORTAL_ASSISTANT_URL=http://judo_portal_llm:8080
       - TZ=Europe/Berlin
     volumes:
       - judo_portal_data:/data
     networks:
       - proxy
+      - judo_portal
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.judo.rule=Host(`judo.tlandsberger.de`)"
@@ -36,10 +40,51 @@ services:
       - "traefik.http.services.judo.loadbalancer.server.port=8000"
       - "traefik.docker.network=proxy"
 
+  judo_portal_llm:
+    # llama.cpp mit Vulkan auf der Arc-Grafik des NUC (/dev/dri); ohne Grafik rechnet er auf der CPU.
+    # Keine Traefik-Route: nur das Portal spricht ihn an. Beim ersten Start lädt er das Modell (~5 GB) von Hugging Face
+    # in das Volume; bis dahin meldet Uke „gerade nicht erreichbar“.
+    # Schneller, aber etwas ungenauer: --hf-repo unsloth/Qwen3-4B-Instruct-2507-GGUF --hf-file Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+    image: ghcr.io/ggml-org/llama.cpp:server-vulkan-b12767
+    container_name: judo_portal_llm
+    restart: unless-stopped
+    command:
+      - --hf-repo
+      - Qwen/Qwen3-8B-GGUF
+      - --hf-file
+      - Qwen3-8B-Q4_K_M.gguf
+      - --alias
+      - uke
+      - --jinja
+      - --ctx-size
+      - "16384"
+      - --parallel
+      - "1"
+      - --n-gpu-layers
+      - "99"
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+    environment:
+      - LLAMA_CACHE=/models
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - judo_portal_models:/models
+    # Obergrenze, damit Home Assistant & Co. immer genug Speicher haben (Modell + Kontext brauchen etwa 7 GB)
+    mem_limit: 10g
+    networks:
+      - judo_portal
+
 volumes:
   judo_portal_data:
+  # Ohne Backup (infrastructure/backup/backup.sh), das Modell lässt sich neu laden
+  judo_portal_models:
 
 networks:
   proxy:
     external: true
     name: proxy
+  # Portal ↔ Sprachmodell; nicht intern, weil der Modell-Dienst beim ersten Start das Modell herunterlädt
+  judo_portal:

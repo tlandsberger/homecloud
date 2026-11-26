@@ -29,6 +29,12 @@
         "portainer/portainer-ce"
       ],
       "automerge": false
+    },
+    {
+      "description": "llama.cpp (Sprachmodell für Uke im Judo-Portal): Builds b1234 als Patch-Versionen, einmal pro Woche",
+      "matchPackageNames": ["ghcr.io/ggml-org/llama.cpp"],
+      "versioning": "regex:^server-vulkan-b(?<patch>\\d+)$",
+      "schedule": ["before 6am on monday"]
     }
   ]
 }
