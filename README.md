@@ -450,14 +450,13 @@ Für jeden Stack in Portainer: **Stacks → Add stack → Repository**
 | 2           | `traefik`       | `infrastructure/traefik/docker-compose.yml`      |
 | 3           | `cloudflared`   | `infrastructure/cloudflared/docker-compose.yml`  |
 | 4           | `monitoring`    | `infrastructure/monitoring/docker-compose.yml`   |
-| 5           | `authentik`     | `infrastructure/authentik/docker-compose.yml`    |
-| 6           | `samba`         | `infrastructure/samba/docker-compose.yml`        |
-| 7           | `backup`        | `infrastructure/backup/docker-compose.yml`       |
-| 8           | `homeassistant` | `application/homeassistant/docker-compose.yml`   |
-| 9           | `jellyfin`      | `application/jellyfin/docker-compose.yml`        |
-| 10          | `nextcloud`     | `application/nextcloud/docker-compose.yml`       |
-| 11          | `windows`       | `application/windows/docker-compose.yml`         |
-| 12          | `judo-portal`   | `application/judo-portal/docker-compose.yml`     |
+| 5           | `samba`         | `infrastructure/samba/docker-compose.yml`        |
+| 6           | `backup`        | `infrastructure/backup/docker-compose.yml`       |
+| 7           | `homeassistant` | `application/homeassistant/docker-compose.yml`   |
+| 8           | `jellyfin`      | `application/jellyfin/docker-compose.yml`        |
+| 9           | `nextcloud`     | `application/nextcloud/docker-compose.yml`       |
+| 10          | `windows`       | `application/windows/docker-compose.yml`         |
+| 11          | `judo-portal`   | `application/judo-portal/docker-compose.yml`     |
 
 Nach dem Deploy von CoreDNS: **FritzBox DHCP-DNS auf NUC-IP umstellen** (Schritt 3.2).
 
@@ -481,15 +480,6 @@ Nach dem Deploy von CoreDNS: **FritzBox DHCP-DNS auf NUC-IP umstellen** (Schritt
 #### infrastructure/monitoring
 
 Keine Secrets erforderlich – alle Konfigurationen sind im Compose-File enthalten.
-
-#### infrastructure/authentik
-
-| Variable              | Wert                                                                    |
-|-----------------------|-------------------------------------------------------------------------|
-| `AUTHENTIK_SECRET_KEY` | Interner Signing-Key. Generieren: `openssl rand -base64 60`           |
-| `AUTHENTIK_DB_PASSWORD` | PostgreSQL-Passwort für Authentik. Generieren: `openssl rand -base64 32` |
-
-> Initial-Setup nach dem ersten Start: `https://auth.tlandsberger.de/if/flow/initial-setup/`
 
 #### infrastructure/samba
 
