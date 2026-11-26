@@ -13,6 +13,7 @@ restic backup /data/volumes \
   --exclude "/data/volumes/monitoring_prometheus_data" \
   --exclude "/data/volumes/monitoring_alloy_data" \
   --exclude "/data/volumes/windows_windows_data" \
+  --exclude "/data/volumes/judo_portal_models" \
   --exclude "**/Plex Media Server/Cache" \
   --exclude "**/Plex Media Server/Codecs"
 restic forget $FORGET_ARGS
