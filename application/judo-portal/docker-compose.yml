@@ -79,9 +79,8 @@ services:
 
 volumes:
   judo_portal_data:
-  # Fester Name, damit das Backup (infrastructure/backup/backup.sh) es ausnehmen kann
+  # Ohne Backup (infrastructure/backup/backup.sh), das Modell lässt sich neu laden
   judo_portal_models:
-    name: judo_portal_models
 
 networks:
   proxy:
@@ -89,4 +88,3 @@ networks:
     name: proxy
   # Portal ↔ Sprachmodell; nicht intern, weil der Modell-Dienst beim ersten Start das Modell herunterlädt
   judo_portal:
-    name: judo_portal
