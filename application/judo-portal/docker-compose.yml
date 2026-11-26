@@ -42,17 +42,16 @@ services:
 
   judo_portal_llm:
     # llama.cpp mit Vulkan auf der Arc-Grafik des NUC (/dev/dri); ohne Grafik rechnet er auf der CPU.
-    # Keine Traefik-Route: nur das Portal spricht ihn an. Beim ersten Start lädt er das Modell (~5 GB) von Hugging Face
+    # Keine Traefik-Route: nur das Portal spricht ihn an. Beim ersten Start lädt er das Modell (~18 GB) von Hugging Face
     # in das Volume; bis dahin meldet Uke „gerade nicht erreichbar“.
-    # Schneller, aber etwas ungenauer: --hf-repo unsloth/Qwen3-4B-Instruct-2507-GGUF --hf-file Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+    # Modell: Qwen3-30B-A3B Instruct 2507 (Mixture of Experts, je Token nur ~3B aktiv: schnell und genau, ohne Denk-Modus).
+    # Weniger RAM (~6 GB): --hf-repo Qwen/Qwen3-8B-GGUF --hf-file Qwen3-8B-Q4_K_M.gguf
     image: ghcr.io/ggml-org/llama.cpp:server-vulkan-b12767
     container_name: judo_portal_llm
     restart: unless-stopped
     command:
       - --hf-repo
-      - Qwen/Qwen3-8B-GGUF
-      - --hf-file
-      - Qwen3-8B-Q4_K_M.gguf
+      - unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF:Q4_K_M
       - --alias
       - uke
       - --jinja
@@ -72,8 +71,8 @@ services:
       - /dev/dri:/dev/dri
     volumes:
       - judo_portal_models:/models
-    # Obergrenze, damit Home Assistant & Co. immer genug Speicher haben (Modell + Kontext brauchen etwa 7 GB)
-    mem_limit: 10g
+    # Obergrenze, damit Home Assistant & Co. immer genug Speicher haben (Modell + Kontext brauchen etwa 20 GB)
+    mem_limit: 24g
     networks:
       - judo_portal
 

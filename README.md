@@ -527,9 +527,9 @@ dessen `docs/betrieb.md`). Ein Container mit eingebauter Anmeldung und SQLite im
 (inkl. täglicher Datenbank-Schnappschüsse um 02:00 in `backups/`, die restic um 02:30 mitsichert).
 Erreichbar unter `https://judo.tlandsberger.de`.
 
-Dazu `judo_portal_llm`: das Sprachmodell (llama.cpp, Qwen3 8B) für den Assistenten „Uke“, nur im internen Netz
-`judo_portal`, mit der Arc-Grafik über `/dev/dri` und höchstens 10 GB RAM. Beim ersten Start lädt er das Modell
-(~5 GB) ins Volume `judo_portal_models`; restic nimmt das Volume aus (lässt sich neu laden). Prüfen:
+Dazu `judo_portal_llm`: das Sprachmodell (llama.cpp, Qwen3-30B-A3B Instruct 2507) für den Assistenten „Uke“, nur im internen Netz
+`judo_portal`, mit der Arc-Grafik über `/dev/dri` und höchstens 24 GB RAM. Beim ersten Start lädt er das Modell
+(~18 GB) ins Volume `judo_portal_models`; restic nimmt das Volume aus (lässt sich neu laden). Prüfen:
 `docker exec judo_portal python manage.py assistant_benchmark`. Abschalten: `PORTAL_ASSISTANT_URL` leeren und den
 Dienst entfernen.
 
